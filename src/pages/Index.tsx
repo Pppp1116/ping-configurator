@@ -8,6 +8,7 @@ import {
   TCP_WINDOW_SIZES,
   testConfiguration,
 } from "../services/networkService";
+import { backupCurrentSettings, restoreSettings } from "../services/settingsService";
 import { PingResults } from "../components/PingResults";
 import { Button } from "@/components/ui/button";
 import {
@@ -24,6 +25,28 @@ const Index = () => {
   const [selectedServer, setSelectedServer] = useState<ServerRegion | null>(null);
   const [testing, setTesting] = useState(false);
   const [results, setResults] = useState<PingResult[]>([]);
+
+  const handleBackup = async () => {
+    try {
+      await backupCurrentSettings();
+      toast.success("Backup das configurações realizado com sucesso!");
+    } catch (error) {
+      toast.error("Erro ao fazer backup das configurações");
+    }
+  };
+
+  const handleRestore = async () => {
+    try {
+      const settings = await restoreSettings();
+      if (settings) {
+        toast.success("Configurações restauradas com sucesso!");
+      } else {
+        toast.error("Nenhum backup encontrado");
+      }
+    } catch (error) {
+      toast.error("Erro ao restaurar configurações");
+    }
+  };
 
   const startTesting = async () => {
     if (!selectedServer) {
@@ -71,6 +94,7 @@ const Index = () => {
           }
         }
       }
+      
       toast.success("Testes concluídos!");
     } catch (error) {
       toast.error("Erro ao realizar os testes");
@@ -93,6 +117,15 @@ const Index = () => {
 
         <div className="bg-white rounded-lg p-6 shadow-xl">
           <div className="space-y-6">
+            <div className="flex gap-4 mb-6">
+              <Button onClick={handleBackup} variant="outline">
+                Fazer Backup das Configurações Atuais
+              </Button>
+              <Button onClick={handleRestore} variant="outline">
+                Restaurar Configurações
+              </Button>
+            </div>
+
             <div>
               <label className="block text-sm font-medium mb-2">
                 Selecione o Servidor
