@@ -14,8 +14,8 @@ export const DNS_SERVERS = [
 ];
 
 export const MTU_SIZES = [1500, 1492, 1468, 1400];
-
 export const BUFFER_SIZES = [8192, 16384, 32768, 65536];
+export const TCP_WINDOW_SIZES = [65536, 131072, 262144, 524288];
 
 export const pingServer = async (url: string): Promise<number> => {
   const start = performance.now();
@@ -31,6 +31,14 @@ export const testConfiguration = async (
   server: ServerRegion,
   config: NetworkConfig
 ): Promise<PingResult> => {
+  // Simulação de aplicação das configurações do Windows
+  console.log(`Aplicando configurações:
+    TCP No Delay: ${config.tcpNoDelay}
+    TCP Window Size: ${config.tcpWindowSize}
+    Nagle Algorithm: ${config.nagleAlgorithm}
+    QoS: ${config.qosEnabled}
+  `);
+
   const latency = await pingServer(server.url);
   return {
     timestamp: Date.now(),

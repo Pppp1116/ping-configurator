@@ -5,6 +5,7 @@ import {
   DNS_SERVERS,
   MTU_SIZES,
   BUFFER_SIZES,
+  TCP_WINDOW_SIZES,
   testConfiguration,
 } from "../services/networkService";
 import { PingResults } from "../components/PingResults";
@@ -16,6 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 
 const Index = () => {
@@ -33,21 +35,39 @@ const Index = () => {
     const newResults: PingResult[] = [];
 
     try {
+      // Testar todas as combinações possíveis
+      const tcpWindowSizes = TCP_WINDOW_SIZES;
+      const tcpNoDelayOptions = [true, false];
+      const nagleOptions = [true, false];
+      const qosOptions = [true, false];
+
       for (const dns of DNS_SERVERS) {
         for (const mtu of MTU_SIZES) {
           for (const bufferSize of BUFFER_SIZES) {
-            const config: NetworkConfig = {
-              dns,
-              mtu,
-              bufferSize,
-            };
+            for (const tcpWindowSize of tcpWindowSizes) {
+              for (const tcpNoDelay of tcpNoDelayOptions) {
+                for (const nagleAlgorithm of nagleOptions) {
+                  for (const qosEnabled of qosOptions) {
+                    const config: NetworkConfig = {
+                      dns,
+                      mtu,
+                      bufferSize,
+                      tcpNoDelay,
+                      tcpWindowSize,
+                      nagleAlgorithm,
+                      qosEnabled,
+                    };
 
-            const result = await testConfiguration(selectedServer, config);
-            newResults.push(result);
-            setResults([...newResults]);
-            
-            // Pausa breve entre testes
-            await new Promise(resolve => setTimeout(resolve, 1000));
+                    const result = await testConfiguration(selectedServer, config);
+                    newResults.push(result);
+                    setResults([...newResults]);
+                    
+                    // Pausa breve entre testes
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                  }
+                }
+              }
+            }
           }
         }
       }
@@ -64,7 +84,7 @@ const Index = () => {
       <div className="max-w-6xl mx-auto space-y-8">
         <div className="text-center text-white">
           <h1 className="text-4xl font-bold mb-4">
-            Otimizador de Rede Epic Games
+            Otimizador de Rede Windows 11 para Epic Games
           </h1>
           <p className="text-lg opacity-90">
             Teste diferentes configurações de rede para encontrar a melhor conexão

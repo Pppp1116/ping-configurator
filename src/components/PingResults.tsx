@@ -23,6 +23,10 @@ export const PingResults = ({ results }: PingResultsProps) => {
             <TableHead>DNS</TableHead>
             <TableHead>MTU</TableHead>
             <TableHead>Buffer Size</TableHead>
+            <TableHead>TCP No Delay</TableHead>
+            <TableHead>TCP Window</TableHead>
+            <TableHead>Nagle</TableHead>
+            <TableHead>QoS</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -47,6 +51,10 @@ export const PingResults = ({ results }: PingResultsProps) => {
               <TableCell>{result.config.dns}</TableCell>
               <TableCell>{result.config.mtu}</TableCell>
               <TableCell>{result.config.bufferSize}</TableCell>
+              <TableCell>{result.config.tcpNoDelay ? "Sim" : "Não"}</TableCell>
+              <TableCell>{result.config.tcpWindowSize}</TableCell>
+              <TableCell>{result.config.nagleAlgorithm ? "Ativo" : "Desativado"}</TableCell>
+              <TableCell>{result.config.qosEnabled ? "Ativo" : "Desativado"}</TableCell>
             </TableRow>
           ))}
         </TableBody>
