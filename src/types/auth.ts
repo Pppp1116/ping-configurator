@@ -14,3 +14,10 @@ export interface LoginAttempt {
   deviceInfo: string;
   success: boolean;
 }
+
+export interface BlockedUser {
+  userId: string;
+  blocked: boolean;
+  blockedAt: string;
+  reason?: string;
+}
