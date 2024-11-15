@@ -1,6 +1,15 @@
 import { NetworkConfig } from "../types/network";
 
 const SETTINGS_KEY = 'network_settings_backup';
+const DEFAULT_SETTINGS: NetworkConfig = {
+  dns: "8.8.8.8",
+  mtu: 1500,
+  bufferSize: 65536,
+  tcpNoDelay: true,
+  tcpWindowSize: 65536,
+  nagleAlgorithm: false,
+  qosEnabled: true
+};
 
 export const backupCurrentSettings = () => {
   try {
@@ -38,6 +47,29 @@ export const restoreSettings = (): NetworkConfig | null => {
     return settings;
   } catch (error) {
     console.error('Erro ao restaurar configurações:', error);
+    throw error;
+  }
+};
+
+export const revertToDefault = (): NetworkConfig => {
+  try {
+    // Em uma implementação real, aqui teríamos chamadas para a API do Windows
+    // para reverter as configurações do sistema para o padrão
+    console.log('Revertendo para configurações padrão:', DEFAULT_SETTINGS);
+    return DEFAULT_SETTINGS;
+  } catch (error) {
+    console.error('Erro ao reverter configurações:', error);
+    throw error;
+  }
+};
+
+export const applySettings = (config: NetworkConfig) => {
+  try {
+    // Em uma implementação real, aqui teríamos chamadas para a API do Windows
+    // para aplicar as configurações específicas
+    console.log('Aplicando configurações:', config);
+  } catch (error) {
+    console.error('Erro ao aplicar configurações:', error);
     throw error;
   }
 };

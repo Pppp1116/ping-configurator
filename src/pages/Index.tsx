@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { NetworkConfig, PingResult, ServerRegion } from "../types/network";
 import {
   EPIC_SERVERS,
@@ -8,9 +8,14 @@ import {
   TCP_WINDOW_SIZES,
   testConfiguration,
 } from "../services/networkService";
-import { backupCurrentSettings, restoreSettings } from "../services/settingsService";
+import {
+  backupCurrentSettings,
+  restoreSettings,
+  revertToDefault,
+} from "../services/settingsService";
 import { PingResults } from "../components/PingResults";
 import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
 import {
   Select,
   SelectContent,
@@ -18,13 +23,35 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 
 const Index = () => {
   const [selectedServer, setSelectedServer] = useState<ServerRegion | null>(null);
   const [testing, setTesting] = useState(false);
   const [results, setResults] = useState<PingResult[]>([]);
+  const [progress, setProgress] = useState(0);
+  const [estimatedTime, setEstimatedTime] = useState<number | null>(null);
+  const [showBestResults, setShowBestResults] = useState(false);
+
+  const calculateTotalTests = () => {
+    return (
+      DNS_SERVERS.length *
+      MTU_SIZES.length *
+      BUFFER_SIZES.length *
+      TCP_WINDOW_SIZES.length *
+      2 * // tcpNoDelay options
+      2 * // nagleAlgorithm options
+      2 // qosEnabled options
+    );
+  };
+
+  const updateEstimatedTime = (completedTests: number, elapsedTime: number) => {
+    const totalTests = calculateTotalTests();
+    const remainingTests = totalTests - completedTests;
+    const timePerTest = elapsedTime / completedTests;
+    const estimatedRemainingTime = remainingTests * timePerTest;
+    setEstimatedTime(Math.ceil(estimatedRemainingTime / 1000)); // Convert to seconds
+  };
 
   const handleBackup = async () => {
     try {
@@ -48,6 +75,15 @@ const Index = () => {
     }
   };
 
+  const handleRevertToDefault = async () => {
+    try {
+      await revertToDefault();
+      toast.success("Configurações revertidas para o padrão!");
+    } catch (error) {
+      toast.error("Erro ao reverter configurações");
+    }
+  };
+
   const startTesting = async () => {
     if (!selectedServer) {
       toast.error("Por favor, selecione um servidor primeiro");
@@ -55,10 +91,13 @@ const Index = () => {
     }
 
     setTesting(true);
+    setShowBestResults(false);
     const newResults: PingResult[] = [];
+    const startTime = Date.now();
+    const totalTests = calculateTotalTests();
+    let completedTests = 0;
 
     try {
-      // Testar todas as combinações possíveis
       const tcpWindowSizes = TCP_WINDOW_SIZES;
       const tcpNoDelayOptions = [true, false];
       const nagleOptions = [true, false];
@@ -83,9 +122,16 @@ const Index = () => {
 
                     const result = await testConfiguration(selectedServer, config);
                     newResults.push(result);
-                    setResults([...newResults]);
+                    completedTests++;
                     
-                    // Pausa breve entre testes
+                    const progress = (completedTests / totalTests) * 100;
+                    setProgress(progress);
+                    
+                    if (completedTests > 0) {
+                      updateEstimatedTime(completedTests, Date.now() - startTime);
+                    }
+                    
+                    setResults([...newResults]);
                     await new Promise(resolve => setTimeout(resolve, 1000));
                   }
                 }
@@ -95,6 +141,7 @@ const Index = () => {
         }
       }
       
+      setShowBestResults(true);
       toast.success("Testes concluídos!");
     } catch (error) {
       toast.error("Erro ao realizar os testes");
@@ -117,13 +164,20 @@ const Index = () => {
 
         <div className="bg-white rounded-lg p-6 shadow-xl">
           <div className="space-y-6">
-            <div className="flex gap-4 mb-6">
-              <Button onClick={handleBackup} variant="outline">
-                Fazer Backup das Configurações Atuais
-              </Button>
-              <Button onClick={handleRestore} variant="outline">
-                Restaurar Configurações
-              </Button>
+            <div className="flex justify-between items-center mb-6">
+              <div className="flex gap-4">
+                <Button onClick={handleBackup} variant="outline">
+                  Use Backup
+                </Button>
+                <Button onClick={handleRevertToDefault} variant="outline">
+                  Revert to Default
+                </Button>
+              </div>
+              {estimatedTime !== null && testing && (
+                <div className="text-sm text-gray-600">
+                  Tempo estimado: {estimatedTime} segundos
+                </div>
+              )}
             </div>
 
             <div>
@@ -150,6 +204,15 @@ const Index = () => {
               </Select>
             </div>
 
+            {testing && (
+              <div className="space-y-2">
+                <Progress value={progress} />
+                <p className="text-sm text-gray-600 text-center">
+                  {Math.round(progress)}% completo
+                </p>
+              </div>
+            )}
+
             <Button
               onClick={startTesting}
               disabled={testing || !selectedServer}
@@ -167,8 +230,10 @@ const Index = () => {
 
             {results.length > 0 && (
               <div className="mt-8">
-                <h2 className="text-xl font-semibold mb-4">Resultados</h2>
-                <PingResults results={results} />
+                <h2 className="text-xl font-semibold mb-4">
+                  {showBestResults ? "Melhores Resultados" : "Resultados"}
+                </h2>
+                <PingResults results={results} showOnlyBest={showBestResults} />
               </div>
             )}
           </div>

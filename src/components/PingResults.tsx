@@ -7,12 +7,28 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
+import { applySettings } from "../services/settingsService";
+import { toast } from "sonner";
 
 interface PingResultsProps {
   results: PingResult[];
+  showOnlyBest?: boolean;
 }
 
-export const PingResults = ({ results }: PingResultsProps) => {
+export const PingResults = ({ results, showOnlyBest = false }: PingResultsProps) => {
+  const sortedResults = [...results].sort((a, b) => a.latency - b.latency);
+  const displayResults = showOnlyBest ? sortedResults.slice(0, 3) : sortedResults;
+
+  const handleApply = (config: NetworkConfig) => {
+    try {
+      applySettings(config);
+      toast.success("Configurações aplicadas com sucesso!");
+    } catch (error) {
+      toast.error("Erro ao aplicar configurações");
+    }
+  };
+
   return (
     <div className="w-full overflow-auto">
       <Table>
@@ -27,10 +43,11 @@ export const PingResults = ({ results }: PingResultsProps) => {
             <TableHead>TCP Window</TableHead>
             <TableHead>Nagle</TableHead>
             <TableHead>QoS</TableHead>
+            <TableHead>Ações</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {results.map((result, index) => (
+          {displayResults.map((result, index) => (
             <TableRow key={index}>
               <TableCell>
                 {new Date(result.timestamp).toLocaleTimeString()}
@@ -55,6 +72,15 @@ export const PingResults = ({ results }: PingResultsProps) => {
               <TableCell>{result.config.tcpWindowSize}</TableCell>
               <TableCell>{result.config.nagleAlgorithm ? "Ativo" : "Desativado"}</TableCell>
               <TableCell>{result.config.qosEnabled ? "Ativo" : "Desativado"}</TableCell>
+              <TableCell>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleApply(result.config)}
+                >
+                  Apply
+                </Button>
+              </TableCell>
             </TableRow>
           ))}
         </TableBody>
