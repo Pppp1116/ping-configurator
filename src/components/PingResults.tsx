@@ -1,4 +1,4 @@
-import { PingResult } from "../types/network";
+import { PingResult, NetworkConfig } from "../types/network";
 import {
   Table,
   TableBody,
