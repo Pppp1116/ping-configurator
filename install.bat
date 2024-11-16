@@ -54,16 +54,11 @@ if %ERRORLEVEL% neq 0 (
     exit /b 1
 )
 
-:: Criar arquivo de inicialização
-echo [INFO] Criando arquivo de inicializacao...
-(
-    echo @echo off
-    echo cd /d "%%~dp0"
-    echo start /min cmd /c npm run dev
-    echo timeout /t 5 /nobreak
-    echo start http://localhost:5173
-) > start.bat
+:: Compilar e criar executável
+echo [INFO] Criando executavel...
+call npm run build
+call npx electron-builder
 
 echo [OK] Instalacao concluida!
-echo Execute o arquivo start.bat para iniciar o programa
+echo O executavel foi criado na pasta dist
 pause
