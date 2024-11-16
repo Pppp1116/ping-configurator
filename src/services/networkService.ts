@@ -1,9 +1,5 @@
 import { NetworkConfig, PingResult, ServerRegion } from "../types/network";
 import { applySettings } from "./settingsService";
-import { exec } from 'child_process';
-import { promisify } from 'util';
-
-const execAsync = promisify(exec);
 
 export const EPIC_SERVERS: ServerRegion[] = [
   { id: "eu-central", name: "Europa Central", url: "epicgames.com" },
@@ -24,15 +20,8 @@ export const TCP_WINDOW_SIZES = [65536, 131072, 262144, 524288];
 
 export const pingServer = async (url: string): Promise<number> => {
   try {
-    const { stdout } = await execAsync(`powershell -Command "Test-Connection -ComputerName ${url} -Count 4 -Quiet"`);
-    const result = stdout.trim().toLowerCase() === 'true' ? 1 : 0;
-    
-    if (result === 1) {
-      const { stdout: pingOutput } = await execAsync(`powershell -Command "(Test-Connection -ComputerName ${url} -Count 4).ResponseTime | Measure-Object -Average | Select-Object -ExpandProperty Average"`);
-      return Math.round(parseFloat(pingOutput));
-    }
-    
-    return -1;
+    const result = await window.electron.invoke('ping-server', url);
+    return result;
   } catch (error) {
     console.error('Erro ao fazer ping:', error);
     return -1;
