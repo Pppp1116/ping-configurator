@@ -1,3 +1,5 @@
 @echo off
 cd /d "%~dp0"
-npm run dev
+start /min cmd /c npm run dev
+timeout /t 5 /nobreak
+start http://localhost:5173
