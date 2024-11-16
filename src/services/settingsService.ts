@@ -1,4 +1,8 @@
 import { NetworkConfig } from "../types/network";
+import { exec } from 'child_process';
+import { promisify } from 'util';
+
+const execAsync = promisify(exec);
 
 const SETTINGS_KEY = 'network_settings_backup';
 const DEFAULT_SETTINGS: NetworkConfig = {
@@ -13,12 +17,11 @@ const DEFAULT_SETTINGS: NetworkConfig = {
 
 export const backupCurrentSettings = async () => {
   try {
-    // Obter configurações atuais do Windows usando PowerShell
     const currentSettings = await getCurrentWindowsSettings();
     localStorage.setItem(SETTINGS_KEY, JSON.stringify(currentSettings));
     return currentSettings;
   } catch (error) {
-    console.error('Erro ao fazer backup das configurações:', error);
+    console.error('Erro ao fazer backup:', error);
     throw error;
   }
 };
@@ -32,7 +35,7 @@ export const restoreSettings = async (): Promise<NetworkConfig | null> => {
     await applyWindowsSettings(settings);
     return settings;
   } catch (error) {
-    console.error('Erro ao restaurar configurações:', error);
+    console.error('Erro ao restaurar:', error);
     throw error;
   }
 };
@@ -42,7 +45,7 @@ export const revertToDefault = async (): Promise<NetworkConfig> => {
     await applyWindowsSettings(DEFAULT_SETTINGS);
     return DEFAULT_SETTINGS;
   } catch (error) {
-    console.error('Erro ao reverter configurações:', error);
+    console.error('Erro ao reverter:', error);
     throw error;
   }
 };
@@ -51,55 +54,42 @@ export const applySettings = async (config: NetworkConfig) => {
   try {
     await applyWindowsSettings(config);
   } catch (error) {
-    console.error('Erro ao aplicar configurações:', error);
+    console.error('Erro ao aplicar:', error);
     throw error;
   }
 };
 
-// Funções auxiliares para interagir com o Windows
 async function getCurrentWindowsSettings(): Promise<NetworkConfig> {
-  // Executar comandos PowerShell para obter configurações atuais
-  const command = `
-    $dns = Get-DnsClientServerAddress -AddressFamily IPv4 | Select-Object -ExpandProperty ServerAddresses | Select-Object -First 1
-    $mtu = Get-NetIPInterface | Where-Object {$_.InterfaceAlias -eq 'Ethernet'} | Select-Object -ExpandProperty NlMtu
-    $tcpParams = Get-NetTCPSetting
-    $qos = Get-NetQosPolicy | Where-Object {$_.Name -eq 'DefaultPolicy'} | Select-Object -ExpandProperty Enabled
-    
-    @{
-      dns = $dns
-      mtu = $mtu
-      bufferSize = $tcpParams.ReceiveBufferSize
-      tcpNoDelay = !$tcpParams.DelayedAckTimeout
-      tcpWindowSize = $tcpParams.WindowSize
-      nagleAlgorithm = $tcpParams.NagleAlgorithm
-      qosEnabled = $qos
-    } | ConvertTo-Json
-  `;
+  const { stdout: dnsOutput } = await execAsync('powershell -Command "Get-DnsClientServerAddress -AddressFamily IPv4 | Select-Object -ExpandProperty ServerAddresses | Select-Object -First 1"');
+  const { stdout: mtuOutput } = await execAsync('powershell -Command "Get-NetIPInterface | Where-Object {$_.InterfaceAlias -eq \'Ethernet\'} | Select-Object -ExpandProperty NlMtu"');
+  const { stdout: tcpOutput } = await execAsync('powershell -Command "Get-NetTCPSetting -SettingName InternetCustom | ConvertTo-Json"');
+  const { stdout: qosOutput } = await execAsync('powershell -Command "Get-NetQosPolicy | Where-Object {$_.Name -eq \'DefaultPolicy\'} | Select-Object -ExpandProperty Enabled"');
 
-  // Em uma implementação real, isso executaria o PowerShell
-  // Por enquanto, retornamos as configurações padrão
-  return DEFAULT_SETTINGS;
+  const tcpSettings = JSON.parse(tcpOutput);
+
+  return {
+    dns: dnsOutput.trim(),
+    mtu: parseInt(mtuOutput.trim()),
+    bufferSize: tcpSettings.ReceiveBufferSize,
+    tcpNoDelay: !tcpSettings.DelayedAckTimeout,
+    tcpWindowSize: tcpSettings.WindowSize,
+    nagleAlgorithm: tcpSettings.NagleAlgorithm,
+    qosEnabled: qosOutput.trim().toLowerCase() === 'true'
+  };
 }
 
 async function applyWindowsSettings(config: NetworkConfig): Promise<void> {
-  // Executar comandos PowerShell para aplicar as configurações
-  const command = `
-    # Configurar DNS
-    Set-DnsClientServerAddress -InterfaceAlias 'Ethernet' -ServerAddresses ${config.dns}
-    
-    # Configurar MTU
-    Set-NetIPInterface -InterfaceAlias 'Ethernet' -NlMtuBytes ${config.mtu}
-    
-    # Configurar TCP
-    Set-NetTCPSetting -SettingName InternetCustom -ReceiveBufferSize ${config.bufferSize}
-    Set-NetTCPSetting -SettingName InternetCustom -WindowSize ${config.tcpWindowSize}
-    Set-NetTCPSetting -SettingName InternetCustom -DelayedAckTimeout ${config.tcpNoDelay ? 0 : 1}
-    Set-NetTCPSetting -SettingName InternetCustom -NagleAlgorithm ${config.nagleAlgorithm}
-    
-    # Configurar QoS
-    ${config.qosEnabled ? 'Enable' : 'Disable'}-NetQosPolicy -Name 'DefaultPolicy'
-  `;
+  const commands = [
+    `Set-DnsClientServerAddress -InterfaceAlias 'Ethernet' -ServerAddresses ${config.dns}`,
+    `Set-NetIPInterface -InterfaceAlias 'Ethernet' -NlMtuBytes ${config.mtu}`,
+    `Set-NetTCPSetting -SettingName InternetCustom -ReceiveBufferSize ${config.bufferSize}`,
+    `Set-NetTCPSetting -SettingName InternetCustom -WindowSize ${config.tcpWindowSize}`,
+    `Set-NetTCPSetting -SettingName InternetCustom -DelayedAckTimeout ${config.tcpNoDelay ? 0 : 1}`,
+    `Set-NetTCPSetting -SettingName InternetCustom -NagleAlgorithm ${config.nagleAlgorithm}`,
+    `${config.qosEnabled ? 'Enable' : 'Disable'}-NetQosPolicy -Name 'DefaultPolicy'`
+  ];
 
-  // Em uma implementação real, isso executaria o PowerShell
-  console.log('Aplicando configurações:', config);
+  for (const command of commands) {
+    await execAsync(`powershell -Command "${command}"`);
+  }
 }

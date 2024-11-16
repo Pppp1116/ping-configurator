@@ -1,5 +1,9 @@
 import { NetworkConfig, PingResult, ServerRegion } from "../types/network";
 import { applySettings } from "./settingsService";
+import { exec } from 'child_process';
+import { promisify } from 'util';
+
+const execAsync = promisify(exec);
 
 export const EPIC_SERVERS: ServerRegion[] = [
   { id: "eu-central", name: "Europa Central", url: "epicgames.com" },
@@ -9,9 +13,9 @@ export const EPIC_SERVERS: ServerRegion[] = [
 ];
 
 export const DNS_SERVERS = [
-  "8.8.8.8", // Google
-  "1.1.1.1", // Cloudflare
-  "208.67.222.222", // OpenDNS
+  "8.8.8.8",
+  "1.1.1.1",
+  "208.67.222.222",
 ];
 
 export const MTU_SIZES = [1500, 1492, 1468, 1400];
@@ -20,14 +24,32 @@ export const TCP_WINDOW_SIZES = [65536, 131072, 262144, 524288];
 
 export const pingServer = async (url: string): Promise<number> => {
   try {
-    const command = `Test-Connection -ComputerName ${url} -Count 1 -Quiet`;
-    // Em uma implementação real, isso executaria o PowerShell
-    // Por enquanto, simulamos um ping aleatório entre 20ms e 200ms
-    const randomPing = Math.floor(Math.random() * (200 - 20 + 1)) + 20;
-    return randomPing;
+    const { stdout } = await execAsync(`powershell -Command "Test-Connection -ComputerName ${url} -Count 4 -Quiet"`);
+    const result = stdout.trim().toLowerCase() === 'true' ? 1 : 0;
+    
+    if (result === 1) {
+      const { stdout: pingOutput } = await execAsync(`powershell -Command "(Test-Connection -ComputerName ${url} -Count 4).ResponseTime | Measure-Object -Average | Select-Object -ExpandProperty Average"`);
+      return Math.round(parseFloat(pingOutput));
+    }
+    
+    return -1;
   } catch (error) {
     console.error('Erro ao fazer ping:', error);
     return -1;
+  }
+};
+
+export const formatTimeEstimate = (seconds: number): string => {
+  if (seconds < 60) {
+    return `${seconds} segundos`;
+  } else if (seconds < 3600) {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${minutes} minuto${minutes > 1 ? 's' : ''}${remainingSeconds > 0 ? ` e ${remainingSeconds} segundos` : ''}`;
+  } else {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    return `${hours} hora${hours > 1 ? 's' : ''}${minutes > 0 ? ` e ${minutes} minutos` : ''}`;
   }
 };
 
@@ -35,13 +57,12 @@ export const testConfiguration = async (
   server: ServerRegion,
   config: NetworkConfig
 ): Promise<PingResult> => {
-  // Aplicar configurações no Windows
   await applySettings(config);
   
-  // Aguardar um momento para as configurações serem aplicadas
-  await new Promise(resolve => setTimeout(resolve, 1000));
+  // Aguarda 2 segundos para as configurações serem aplicadas
+  await new Promise(resolve => setTimeout(resolve, 2000));
   
-  // Testar o ping
+  // Faz 4 pings e pega a média
   const latency = await pingServer(server.url);
   
   return {
