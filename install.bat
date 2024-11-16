@@ -14,6 +14,9 @@ if %errorLevel% neq 0 (
     exit /b 1
 )
 
+:: Mudar para o diretório do script
+cd /d "%~dp0"
+
 :: Verificar Node.js no caminho padrão de instalação
 if exist "C:\Program Files\nodejs\node.exe" (
     echo [OK] Node.js encontrado
