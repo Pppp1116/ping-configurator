@@ -17,51 +17,53 @@ if %errorLevel% neq 0 (
 :: Mudar para o diretório do script
 cd /d "%~dp0"
 
-:: Verificar Node.js no caminho padrão de instalação
-if exist "C:\Program Files\nodejs\node.exe" (
-    echo [OK] Node.js encontrado
-    goto :check_npm
+:: Verificar Node.js
+where node >nul 2>&1
+if %errorLevel% neq 0 (
+    echo [INFO] Node.js nao encontrado. Iniciando download...
+    
+    :: Download do Node.js usando PowerShell
+    powershell -Command "& {[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; Invoke-WebRequest 'https://nodejs.org/dist/v20.11.1/node-v20.11.1-x64.msi' -OutFile '%TEMP%\node_installer.msi'}"
+    
+    if not exist "%TEMP%\node_installer.msi" (
+        echo [ERRO] Falha no download do Node.js
+        pause
+        exit /b 1
+    )
+    
+    :: Instalar Node.js silenciosamente
+    echo [INFO] Instalando Node.js...
+    start /wait msiexec /i "%TEMP%\node_installer.msi" /qn
+    if %ERRORLEVEL% neq 0 (
+        echo [ERRO] Falha na instalacao do Node.js
+        del "%TEMP%\node_installer.msi"
+        pause
+        exit /b 1
+    )
+    
+    del "%TEMP%\node_installer.msi"
+    
+    :: Atualizar PATH
+    refreshenv >nul 2>&1
+    if %ERRORLEVEL% neq 0 (
+        echo [INFO] Por favor, reinicie o computador e execute este script novamente
+        pause
+        exit /b 0
+    )
 )
 
-echo [INFO] Node.js nao encontrado. Iniciando download...
-
-:: Download do Node.js
-mkdir "%TEMP%\nodejs_install" 2>nul
-powershell -Command "& {Invoke-WebRequest 'https://nodejs.org/dist/v20.11.1/node-v20.11.1-x64.msi' -OutFile '%TEMP%\nodejs_install\node_installer.msi'}"
-
-if not exist "%TEMP%\nodejs_install\node_installer.msi" (
-    echo [ERRO] Falha no download do Node.js
-    pause
-    exit /b 1
-)
-
-:: Instalar Node.js silenciosamente
-echo [INFO] Instalando Node.js...
-msiexec /i "%TEMP%\nodejs_install\node_installer.msi" /qn
-if %ERRORLEVEL% neq 0 (
-    echo [ERRO] Falha na instalacao do Node.js
-    pause
-    exit /b 1
-)
-
-:: Aguardar instalação e atualizar PATH
-timeout /t 10 /nobreak
-set "PATH=%PATH%;C:\Program Files\nodejs"
-rd /s /q "%TEMP%\nodejs_install" 2>nul
-
-:check_npm
-:: Verificar se npm está disponível
+:: Verificar npm
 where npm >nul 2>&1
-if %ERRORLEVEL% neq 0 (
-    echo [ERRO] npm nao encontrado no PATH
-    echo Tente reiniciar o computador e executar o script novamente
+if %errorLevel% neq 0 (
+    echo [ERRO] npm nao encontrado
+    echo Por favor, reinicie o computador e execute o script novamente
     pause
     exit /b 1
 )
 
 :: Instalar dependências
 echo [INFO] Instalando dependencias...
-call npm install
+call npm install --no-audit
 if %ERRORLEVEL% neq 0 (
     echo [ERRO] Falha ao instalar dependencias
     pause
@@ -69,24 +71,25 @@ if %ERRORLEVEL% neq 0 (
 )
 
 :: Compilar
-echo [INFO] Compilando aplicação...
+echo [INFO] Compilando aplicacao...
 call npm run build
 if %ERRORLEVEL% neq 0 (
-    echo [ERRO] Falha ao compilar aplicação
+    echo [ERRO] Falha ao compilar aplicacao
     pause
     exit /b 1
 )
 
-:: Criar executável usando electron-builder
-echo [INFO] Criando executável...
-call npx electron-builder --win portable --config electron-builder.yml
-
+:: Criar executável
+echo [INFO] Criando executavel...
+call npx electron-builder --win portable
 if %ERRORLEVEL% neq 0 (
-    echo [ERRO] Falha ao criar executável
+    echo [ERRO] Falha ao criar executavel
     pause
     exit /b 1
 )
 
-echo [OK] Instalacao concluida!
+echo.
+echo [OK] Instalacao concluida com sucesso!
 echo O executavel foi criado na pasta dist
+echo.
 pause

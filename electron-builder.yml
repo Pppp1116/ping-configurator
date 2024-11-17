@@ -2,6 +2,13 @@ appId: com.epicgames.networkoptimizer
 productName: Epic Games Network Optimizer
 directories:
   output: dist
+files:
+  - "dist/**/*"
+  - "node_modules/**/*"
+  - "package.json"
 win:
-  target: portable
+  target: 
+    - target: portable
+      arch:
+        - x64
   icon: public/favicon.ico
