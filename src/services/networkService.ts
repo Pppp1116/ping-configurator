@@ -2,10 +2,10 @@ import { NetworkConfig, PingResult, ServerRegion } from "../types/network";
 import { applySettings } from "./settingsService";
 
 export const EPIC_SERVERS: ServerRegion[] = [
-  { id: "eu-central", name: "Europa Central", url: "epicgames.com" },
-  { id: "na-east", name: "América do Norte (Leste)", url: "epicgames.com" },
-  { id: "na-west", name: "América do Norte (Oeste)", url: "epicgames.com" },
-  { id: "sa-east", name: "América do Sul", url: "epicgames.com" },
+  { id: "eu-central", name: "Europa Central", url: "epic-games-api.arvancloud.com" },
+  { id: "na-east", name: "América do Norte (Leste)", url: "epicgames-download1.akamaized.net" },
+  { id: "na-west", name: "América do Norte (Oeste)", url: "download.epicgames.com" },
+  { id: "sa-east", name: "América do Sul", url: "download2.epicgames.com" },
 ];
 
 export const DNS_SERVERS = [

@@ -1,0 +1,7 @@
+appId: com.epicgames.networkoptimizer
+productName: Epic Games Network Optimizer
+directories:
+  output: dist
+win:
+  target: portable
+  icon: public/favicon.ico

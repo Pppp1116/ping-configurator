@@ -20,7 +20,7 @@ cd /d "%~dp0"
 :: Verificar Node.js no caminho padrão de instalação
 if exist "C:\Program Files\nodejs\node.exe" (
     echo [OK] Node.js encontrado
-    goto :dependencies
+    goto :check_npm
 )
 
 echo [INFO] Node.js nao encontrado. Iniciando download...
@@ -44,10 +44,21 @@ if %ERRORLEVEL% neq 0 (
     exit /b 1
 )
 
+:: Aguardar instalação e atualizar PATH
 timeout /t 10 /nobreak
+set "PATH=%PATH%;C:\Program Files\nodejs"
 rd /s /q "%TEMP%\nodejs_install" 2>nul
 
-:dependencies
+:check_npm
+:: Verificar se npm está disponível
+where npm >nul 2>&1
+if %ERRORLEVEL% neq 0 (
+    echo [ERRO] npm nao encontrado no PATH
+    echo Tente reiniciar o computador e executar o script novamente
+    pause
+    exit /b 1
+)
+
 :: Instalar dependências
 echo [INFO] Instalando dependencias...
 call npm install
@@ -68,7 +79,7 @@ if %ERRORLEVEL% neq 0 (
 
 :: Criar executável usando electron-builder
 echo [INFO] Criando executável...
-call npx electron-builder --win portable --config.appId="com.epicgames.networkoptimizer" --config.productName="Epic Games Network Optimizer" --config.directories.output="dist" --config.win.target="portable"
+call npx electron-builder --win portable --config electron-builder.yml
 
 if %ERRORLEVEL% neq 0 (
     echo [ERRO] Falha ao criar executável
