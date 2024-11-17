@@ -2,13 +2,17 @@ appId: com.epicgames.networkoptimizer
 productName: Epic Games Network Optimizer
 directories:
   output: dist
+  buildResources: public
 files:
   - "dist/**/*"
   - "node_modules/**/*"
   - "package.json"
+  - "!**/node_modules/*/{CHANGELOG.md,README.md,README,readme.md,readme}"
+  - "!**/node_modules/*/{test,__tests__,tests,powered-test,example,examples}"
 win:
   target: 
     - target: portable
       arch:
         - x64
   icon: public/favicon.ico
+  requestedExecutionLevel: requireAdministrator

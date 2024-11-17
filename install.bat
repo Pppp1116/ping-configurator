@@ -44,12 +44,9 @@ if %errorLevel% neq 0 (
     del "%TEMP%\node_installer.msi"
     
     :: Atualizar PATH
-    refreshenv >nul 2>&1
-    if %ERRORLEVEL% neq 0 (
-        echo [INFO] Por favor, reinicie o computador e execute este script novamente
-        pause
-        exit /b 0
-    )
+    echo [INFO] Atualizando variaveis de ambiente...
+    setx PATH "%PATH%;C:\Program Files\nodejs" /M
+    set "PATH=%PATH%;C:\Program Files\nodejs"
 )
 
 :: Verificar npm
@@ -61,9 +58,13 @@ if %errorLevel% neq 0 (
     exit /b 1
 )
 
+:: Limpar cache do npm
+echo [INFO] Limpando cache do npm...
+call npm cache clean --force
+
 :: Instalar dependências
 echo [INFO] Instalando dependencias...
-call npm install --no-audit
+call npm install --no-audit --force
 if %ERRORLEVEL% neq 0 (
     echo [ERRO] Falha ao instalar dependencias
     pause
