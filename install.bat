@@ -66,19 +66,9 @@ if %ERRORLEVEL% neq 0 (
     exit /b 1
 )
 
-:: Criar executável usando electron-builder com configuração inline
+:: Criar executável usando electron-builder
 echo [INFO] Criando executável...
-call npx electron-builder --win portable --config ^
-{^
-    "appId": "com.epicgames.networkoptimizer",^
-    "productName": "Epic Games Network Optimizer",^
-    "directories": {^
-        "output": "dist"^
-    },^
-    "win": {^
-        "target": "portable"^
-    }^
-}
+call npx electron-builder --win portable --config.appId="com.epicgames.networkoptimizer" --config.productName="Epic Games Network Optimizer" --config.directories.output="dist" --config.win.target="portable"
 
 if %ERRORLEVEL% neq 0 (
     echo [ERRO] Falha ao criar executável
