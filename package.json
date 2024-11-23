@@ -46,7 +46,7 @@
     "date-fns": "^3.6.0",
     "electron": "^33.2.0",
     "electron-builder": "^25.1.8",
-    "embla-carousel-react": "^8.3.0",
+    "embla-carousel-react": "^8.3.1",
     "input-otp": "^1.2.4",
     "lucide-react": "^0.451.0",
     "next-themes": "^0.3.0",
